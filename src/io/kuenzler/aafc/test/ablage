@@ -1,0 +1,72 @@
+inputreader:
+InputStream is = process.getInputStream();
+        InputStreamReader isr = new InputStreamReader(is);
+        BufferedReader br = new BufferedReader(isr);
+        String line;
+        try {
+            while ((line = br.readLine()) != null) {
+                final String nline = line;   
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        frame.update_commandline(nline);
+                    }
+                });
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(Fastboot.class.getName()).log(Level.SEVERE, null, ex);
+            frame.update_commandline("--Crashed while reading cmd output");
+        }
+
+
+SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                frame.update_commandline(nline);
+            }
+        });
+
+
+JOptionPane error = new JOptionPane();
+        error.showMessageDialog(new JFrame(), "Es wurde nicht gespeichert", "Die Auswahl wurde abgebrochen", JOptionPane.PLAIN_MESSAGE);
+
+
+
+
+String prog;
+            if (mode == 1) {
+                prog = "adb.exe";
+            } else {
+                prog = "fastboot.exe";
+            }
+
+
+altes system executer:
+try {
+                while ((current = br.read()) != -1) {
+                    line += (char) current;
+                }
+            } catch (IOException ex) {
+                updateCommandline("--Crashed while reading cmd output: "+ex);
+            }
+            updateCommandline(line);
+
+
+
+
+
+
+ public static void main(String args[]) {
+        /* Set the Nimbus look and feel */
+       try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
+            java.util.logging.Logger.getLogger(Frame.class
+                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
+    } 

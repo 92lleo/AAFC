@@ -1,0 +1,1098 @@
+package _crap;
+
+import adbfastboottool.Adbfbtool;
+import adbfastboottool.Executer;
+import adbfastboottool.ExecutionHandler;
+import adbfastboottool.Text;
+import gui.ADBPushPull;
+import gui.CommandHistory;
+import gui.FastbootFlashEraseFormat;
+import gui.Logcat;
+
+import java.awt.Image;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowEvent;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.HashMap;
+
+import javax.swing.ImageIcon;
+import javax.swing.JOptionPane;
+import javax.swing.GroupLayout.Alignment;
+import javax.swing.GroupLayout;
+import javax.swing.LayoutStyle.ComponentPlacement;
+
+import net.miginfocom.swing.MigLayout;
+
+/**
+ * Main GUI for adbfastboottool with command interface
+ * 
+ * @author Leonhard Kuenzler
+ * @version 1.1.0
+ * @date 18.06.14 15:20 (no ver change)
+ */
+public class MainGuiWorking extends javax.swing.JFrame {
+
+	private static final long serialVersionUID = -5856005806675184791L;
+	private boolean searching = false;
+	private int mode; // 1 adb, 2 fastboot, 3 cmd
+	private Executer currentmode;
+	private final ExecutionHandler execHandler;
+	private String path, orgpath, currentcommand, commandline;
+	private HashMap<String, Integer> owncommands;
+	private final Adbfbtool main;
+	private final CommandHistory comHistory;
+
+	/**
+	 * Creates new Mainframe
+	 * 
+	 * @param main
+	 *            the main control object
+	 * @param version
+	 *            the current version as string
+	 */
+	public MainGuiWorking(Adbfbtool main, String version) {
+		initComponents();
+		this.main = main;
+		mode = 0;
+		currentmode = null;
+		execHandler = new ExecutionHandler(main);
+		commandline = currentcommand = "";
+		owncommands = Text.getOwnCommands();
+		ta_cmd.setText(commandline);
+		comHistory = new CommandHistory();
+		path = orgpath = new File(System.getProperty("java.io.tmpdir"))
+				.getAbsolutePath().toString() + "\\";
+		addWindowListener(new java.awt.event.WindowAdapter() {
+			@Override
+			public void windowClosing(java.awt.event.WindowEvent e) {
+				b_exit.doClick();
+			}
+		});
+		// Image icon = Toolkit.getDefaultToolkit().getImage("icon.gif");
+		Image icon = new ImageIcon(main.getPath() + "icon.jpeg").getImage();
+		setIconImage(icon);
+		ta_cmd.setLineWrap(true); // Zeilenumbruch ja
+		getContentPane().setLayout(new MigLayout("", "[66px][18px][37px][10px][64px][10px][109px][10px][114px][60px][116px][84px][6px][13px][6px][72px][6px][25px][6px][72px]", "[23px][23px][424.00px][29px][23px][14px]"));
+		getContentPane().add(l_from, "cell 0 5 7 1,growx,aligny top");
+		getContentPane().add(l_working, "cell 0 4,growx,aligny center");
+		getContentPane().add(b_executecommand, "cell 2 4 3 1,growx,aligny top");
+		getContentPane().add(b_clear, "cell 6 4,growx,aligny top");
+		getContentPane().add(b_savelog, "cell 8 4,growx,aligny top");
+		getContentPane().add(t_command, "cell 0 3 9 1,grow");
+		getContentPane().add(b_exit, "cell 10 4,growx,aligny top");
+		getContentPane().add(b_checkfordevice, "cell 0 0 3 1,growx,aligny top");
+		getContentPane().add(l_device, "cell 4 0 3 1,growx,aligny center");
+		getContentPane().add(l_currentmode, "cell 0 1 7 1,alignx left,growy");
+		getContentPane().add(jScrollPane1, "cell 0 2 11 1,grow");
+		getContentPane().add(l_batch, "cell 11 0 9 1,growx,aligny bottom");
+		getContentPane().add(b_loadcommands, "cell 11 1 3 1,alignx left,aligny top");
+		getContentPane().add(b_savecommands, "cell 15 1 3 1,alignx left,aligny top");
+		getContentPane().add(b_clearcommandarea, "cell 19 1,growx,aligny top");
+		getContentPane().add(jScrollPane2, "cell 11 2 5 1,alignx left,aligny top");
+		getContentPane().add(b_execudenextcommand, "cell 11 3 5 1,alignx left,aligny top");
+		getContentPane().add(b_killadb, "cell 11 4,growx,aligny top");
+		getContentPane().add(b_killfb, "cell 13 4 3 1,alignx left,aligny top");
+		getContentPane().add(b_reset, "cell 17 4 3 1,growx,aligny top");
+		getContentPane().add(cb_editbatch, "cell 17 3 3 1,alignx left,aligny top");
+	}
+
+	private void initComponents() {
+
+		t_command = new javax.swing.JTextField();
+		jScrollPane1 = new javax.swing.JScrollPane();
+		ta_cmd = new javax.swing.JTextArea();
+		l_currentmode = new javax.swing.JLabel();
+		b_executecommand = new javax.swing.JButton();
+		b_clear = new javax.swing.JButton();
+		b_savelog = new javax.swing.JButton();
+		l_working = new javax.swing.JLabel();
+		b_checkfordevice = new javax.swing.JButton();
+		l_device = new javax.swing.JLabel();
+		b_killadb = new javax.swing.JButton();
+		b_killfb = new javax.swing.JButton();
+		b_exit = new javax.swing.JButton();
+		l_from = new javax.swing.JLabel();
+		jScrollPane2 = new javax.swing.JScrollPane();
+		ta_batch = new javax.swing.JTextArea();
+		b_loadcommands = new javax.swing.JButton();
+		b_clearcommandarea = new javax.swing.JButton();
+		b_execudenextcommand = new javax.swing.JButton();
+		b_savecommands = new javax.swing.JButton();
+		l_batch = new javax.swing.JLabel();
+		cb_editbatch = new javax.swing.JCheckBox();
+		b_reset = new javax.swing.JButton();
+		MB_menu = new javax.swing.JMenuBar();
+		M_start = new javax.swing.JMenu();
+		MI_checkAdbFastboot = new javax.swing.JMenuItem();
+		MI_howTo = new javax.swing.JMenuItem();
+		MI_about = new javax.swing.JMenuItem();
+		MI_close = new javax.swing.JMenuItem();
+		M_mode = new javax.swing.JMenu();
+		MI_chooseADB = new javax.swing.JMenuItem();
+		MI_chooseFastboot = new javax.swing.JMenuItem();
+		MI_chooseCMD = new javax.swing.JMenuItem();
+		jSeparator1 = new javax.swing.JPopupMenu.Separator();
+		MI_autoselect = new javax.swing.JMenuItem();
+		jSeparator2 = new javax.swing.JPopupMenu.Separator();
+		CBMI_clear = new javax.swing.JCheckBoxMenuItem();
+		M_options = new javax.swing.JMenu();
+		MI_editPath = new javax.swing.JMenuItem();
+		MI_installDrivers = new javax.swing.JMenuItem();
+		MI_autolog = new javax.swing.JCheckBoxMenuItem();
+		MI_checkupdates = new javax.swing.JMenuItem();
+		M_insert = new javax.swing.JMenu();
+		MI_addFilePath = new javax.swing.JMenuItem();
+		MI_addFlashErase = new javax.swing.JMenuItem();
+		MI_addPushPull = new javax.swing.JMenuItem();
+		jMenu3 = new javax.swing.JMenu();
+		M_reboot = new javax.swing.JMenu();
+		MI_bootAndroid = new javax.swing.JMenuItem();
+		MI_bootBootloader = new javax.swing.JMenuItem();
+		MI_bootRecovery = new javax.swing.JMenuItem();
+		jMenu1 = new javax.swing.JMenu();
+		M_adb = new javax.swing.JMenu();
+		MI_logcat = new javax.swing.JMenuItem();
+		M_fastboot = new javax.swing.JMenu();
+
+		setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
+		setTitle("ADB/Fastboot Tool");
+		setBackground(new java.awt.Color(51, 0, 255));
+		setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+		setForeground(new java.awt.Color(0, 153, 255));
+		setIconImages(null);
+		setLocationByPlatform(true);
+		setResizable(true);
+		addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyPressed(java.awt.event.KeyEvent evt) {
+				formKeyPressed(evt);
+			}
+		});
+
+		t_command.setText("Run your own command");
+		t_command.setToolTipText("Type your command here, hit enter to run");
+		t_command.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyPressed(java.awt.event.KeyEvent evt) {
+				t_commandKeyPressed(evt);
+			}
+		});
+
+		ta_cmd.setEditable(false);
+		ta_cmd.setColumns(20);
+		ta_cmd.setRows(5);
+		ta_cmd.setToolTipText("Cmd output");
+		jScrollPane1.setViewportView(ta_cmd);
+
+		l_currentmode.setText("choose mode to start or type 'commandlist'");
+
+		b_executecommand.setText("Run!");
+		b_executecommand.setToolTipText("Run typed command");
+		b_executecommand.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				b_executecommandActionPerformed(evt);
+			}
+		});
+		b_executecommand.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyPressed(java.awt.event.KeyEvent evt) {
+				b_executecommandKeyPressed(evt);
+			}
+		});
+
+		b_clear.setText("Clear");
+		b_clear.setToolTipText("Clear cmd output");
+		b_clear.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				b_clearActionPerformed(evt);
+			}
+		});
+
+		b_savelog.setText("Save log");
+		b_savelog.setToolTipText("Save cmd output to file");
+		b_savelog.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				b_savelogActionPerformed(evt);
+			}
+		});
+
+		l_working.setText(" Ready");
+		l_working.setToolTipText("If ready, last command has finished");
+
+		b_checkfordevice.setText("Check for device");
+		b_checkfordevice.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				b_checkfordeviceActionPerformed(evt);
+			}
+		});
+
+		l_device.setText("No device");
+
+		b_killadb.setText("Kill ADB");
+		b_killadb.setToolTipText("Kills adb server");
+		b_killadb.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				b_killadbActionPerformed(evt);
+			}
+		});
+
+		b_killfb.setText("Kill Fastboot");
+		b_killfb.setToolTipText("kills fastboot thread");
+		b_killfb.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				b_killfbActionPerformed(evt);
+			}
+		});
+
+		b_exit.setText("Exit");
+		b_exit.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				b_exitActionPerformed(evt);
+			}
+		});
+
+		l_from.setText("Leonhard Kuenzler, 2014");
+
+		ta_batch.setEditable(false);
+		ta_batch.setColumns(20);
+		ta_batch.setRows(5);
+		ta_batch.setToolTipText("Load or create list of commands to run");
+		jScrollPane2.setViewportView(ta_batch);
+
+		b_loadcommands.setText("Load batch file");
+		b_loadcommands
+				.setToolTipText("Load a textfile with your commands. First line must be \".adbfastboot\"");
+		b_loadcommands.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				b_loadcommandsActionPerformed(evt);
+			}
+		});
+
+		b_clearcommandarea.setText("Clear");
+		b_clearcommandarea.setToolTipText("Clear the commandbox");
+		b_clearcommandarea
+				.addActionListener(new java.awt.event.ActionListener() {
+					public void actionPerformed(java.awt.event.ActionEvent evt) {
+						b_clearcommandareaActionPerformed(evt);
+					}
+				});
+
+		b_execudenextcommand.setText("Execute next command");
+		b_execudenextcommand
+				.addActionListener(new java.awt.event.ActionListener() {
+					public void actionPerformed(java.awt.event.ActionEvent evt) {
+						b_execudenextcommandActionPerformed(evt);
+					}
+				});
+
+		b_savecommands.setText("Save batch file");
+		b_savecommands.setToolTipText("Save your commands to a file");
+		b_savecommands.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				b_savecommandsActionPerformed(evt);
+			}
+		});
+
+		l_batch.setText("Load a batch file (txt). First line must be \".adbfastboot\"");
+
+		cb_editbatch.setText("Edit commands");
+		cb_editbatch.setToolTipText("Enables/disables editing of commandbox");
+		cb_editbatch.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				cb_editbatchActionPerformed(evt);
+			}
+		});
+
+		b_reset.setText("Reset all");
+		b_reset.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				b_resetActionPerformed(evt);
+			}
+		});
+
+		MB_menu.setBackground(new java.awt.Color(255, 255, 255));
+		MB_menu.setBorder(javax.swing.BorderFactory.createEtchedBorder(
+				java.awt.Color.lightGray, null));
+		MB_menu.setForeground(new java.awt.Color(153, 204, 255));
+
+		M_start.setText("Start");
+
+		MI_checkAdbFastboot.setAccelerator(javax.swing.KeyStroke.getKeyStroke(
+				java.awt.event.KeyEvent.VK_C,
+				java.awt.event.InputEvent.ALT_MASK));
+		MI_checkAdbFastboot.setText("Check ADB and Fastboot");
+		MI_checkAdbFastboot
+				.addActionListener(new java.awt.event.ActionListener() {
+					public void actionPerformed(java.awt.event.ActionEvent evt) {
+						MI_checkAdbFastbootActionPerformed(evt);
+					}
+				});
+		M_start.add(MI_checkAdbFastboot);
+
+		MI_howTo.setAccelerator(javax.swing.KeyStroke.getKeyStroke(
+				java.awt.event.KeyEvent.VK_F1,
+				java.awt.event.InputEvent.CTRL_MASK));
+		MI_howTo.setText("How to");
+		MI_howTo.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_howToActionPerformed(evt);
+			}
+		});
+		M_start.add(MI_howTo);
+
+		MI_about.setText("About");
+		MI_about.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_aboutActionPerformed(evt);
+			}
+		});
+		M_start.add(MI_about);
+
+		MI_close.setAccelerator(javax.swing.KeyStroke.getKeyStroke(
+				java.awt.event.KeyEvent.VK_F4,
+				java.awt.event.InputEvent.ALT_MASK));
+		MI_close.setText("Exit");
+		MI_close.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_closeActionPerformed(evt);
+			}
+		});
+		M_start.add(MI_close);
+
+		MB_menu.add(M_start);
+
+		M_mode.setText("Mode");
+		M_mode.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				M_modeActionPerformed(evt);
+			}
+		});
+
+		MI_chooseADB.setText("ADB");
+		MI_chooseADB.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_chooseADBActionPerformed(evt);
+			}
+		});
+		M_mode.add(MI_chooseADB);
+
+		MI_chooseFastboot.setText("Fastboot");
+		MI_chooseFastboot
+				.addActionListener(new java.awt.event.ActionListener() {
+					public void actionPerformed(java.awt.event.ActionEvent evt) {
+						MI_chooseFastbootActionPerformed(evt);
+					}
+				});
+		M_mode.add(MI_chooseFastboot);
+
+		MI_chooseCMD.setText("CMD");
+		MI_chooseCMD.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_chooseCMDActionPerformed(evt);
+			}
+		});
+		M_mode.add(MI_chooseCMD);
+		M_mode.add(jSeparator1);
+
+		MI_autoselect.setText("Autoselect");
+		MI_autoselect.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_autoselectActionPerformed(evt);
+			}
+		});
+		M_mode.add(MI_autoselect);
+		M_mode.add(jSeparator2);
+
+		CBMI_clear.setSelected(true);
+		CBMI_clear.setText("Clear Window on change");
+		M_mode.add(CBMI_clear);
+
+		MB_menu.add(M_mode);
+
+		M_options.setText("Options");
+
+		MI_editPath.setText("Change path");
+		MI_editPath.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_editPathActionPerformed(evt);
+			}
+		});
+		M_options.add(MI_editPath);
+
+		MI_installDrivers.setText("Install drivers");
+		MI_installDrivers
+				.addActionListener(new java.awt.event.ActionListener() {
+					public void actionPerformed(java.awt.event.ActionEvent evt) {
+						MI_installDriversActionPerformed(evt);
+					}
+				});
+		M_options.add(MI_installDrivers);
+
+		MI_autolog.setSelected(true);
+		MI_autolog.setText("Auto-log output");
+		M_options.add(MI_autolog);
+
+		MI_checkupdates.setText("Check for updates");
+		MI_checkupdates.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_checkupdatesActionPerformed(evt);
+			}
+		});
+		M_options.add(MI_checkupdates);
+
+		MB_menu.add(M_options);
+
+		M_insert.setText("Insert");
+
+		MI_addFilePath.setText("Path to file");
+		MI_addFilePath.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_addFilePathActionPerformed(evt);
+			}
+		});
+		M_insert.add(MI_addFilePath);
+
+		MI_addFlashErase.setText("Flash/erase partition");
+		MI_addFlashErase.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_addFlashEraseActionPerformed(evt);
+			}
+		});
+		M_insert.add(MI_addFlashErase);
+
+		MI_addPushPull.setText("Push/pull file");
+		MI_addPushPull.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_addPushPullActionPerformed(evt);
+			}
+		});
+		M_insert.add(MI_addPushPull);
+
+		MB_menu.add(M_insert);
+
+		jMenu3.setText("|");
+		MB_menu.add(jMenu3);
+
+		M_reboot.setText("Reboot device");
+
+		MI_bootAndroid.setText("Android");
+		MI_bootAndroid.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_bootAndroidActionPerformed(evt);
+			}
+		});
+		M_reboot.add(MI_bootAndroid);
+
+		MI_bootBootloader.setText("Bootloader");
+		MI_bootBootloader
+				.addActionListener(new java.awt.event.ActionListener() {
+					public void actionPerformed(java.awt.event.ActionEvent evt) {
+						MI_bootBootloaderActionPerformed(evt);
+					}
+				});
+		M_reboot.add(MI_bootBootloader);
+
+		MI_bootRecovery.setText("Recovery");
+		MI_bootRecovery.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_bootRecoveryActionPerformed(evt);
+			}
+		});
+		M_reboot.add(MI_bootRecovery);
+
+		MB_menu.add(M_reboot);
+
+		jMenu1.setText("|");
+		MB_menu.add(jMenu1);
+
+		M_adb.setText("ADB");
+
+		MI_logcat.setText("Logcat");
+		MI_logcat.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				MI_logcatActionPerformed(evt);
+			}
+		});
+		M_adb.add(MI_logcat);
+
+		MB_menu.add(M_adb);
+
+		M_fastboot.setText("Fastboot");
+		MB_menu.add(M_fastboot);
+
+		setJMenuBar(MB_menu);
+
+		pack();
+	}// </editor-fold>//GEN-END:initComponents
+
+	private void MI_checkAdbFastbootActionPerformed(
+			java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_checkAdbFastbootActionPerformed
+		updateCommandline("--checkADBFastboot not supportet yet");
+	}// GEN-LAST:event_MI_checkAdbFastbootActionPerformed
+
+	private void MI_closeActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_closeActionPerformed
+		main.exit();
+	}// GEN-LAST:event_MI_closeActionPerformed
+
+	private void MI_chooseADBActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_chooseADBActionPerformed
+		main.setMode(Executer.ADB);
+	}// GEN-LAST:event_MI_chooseADBActionPerformed
+
+	private void b_executecommandActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_b_executecommandActionPerformed
+		main.setWorking(true);
+		currentcommand = t_command.getText();
+		comHistory.addCommand(currentcommand);
+		t_command.setText("");
+		if (currentcommand.equals("")) {
+			updateCommandline("--type command before entering");
+			return;
+		}
+		if (owncommands.containsKey(currentcommand)) {
+			updateCommandline(">> " + currentcommand);
+			switch ((int) owncommands.get(currentcommand)) {
+			case 1: {
+				commandline = "";
+				ta_cmd.setText(commandline);
+				break;
+			}
+			case 2: {
+				main.exit();
+				break;
+			}
+			case 3: {
+				MI_chooseFastboot.doClick();
+				break;
+			}
+			case 4: {
+				MI_chooseADB.doClick();
+				break;
+			}
+			case 5: {
+				MI_chooseCMD.doClick();
+				break;
+			}
+			case 6: {
+				updateCommandline("--help--");
+				break;
+			}
+			case 7: {
+				updateCommandline("--commands:\n   clear\n   exit\n   "
+						+ "mode [fastboot|adb|cmd]\n   helpme\n   reset path"
+						+ "\n   about\n   commandlist");
+				break;
+			}
+			case 8: {
+				path = orgpath;
+				updateCommandline("Path changed to " + path);
+				break;
+			}
+			case 9: {
+				MI_about.doClick();
+				break;
+			}
+			case 10: {
+				main.message("Happy Easter", "Hallo Anselm",
+						JOptionPane.INFORMATION_MESSAGE);
+				break;
+			}
+			case 11: {
+				System.exit(0);
+			}
+
+			}
+			main.setWorking(false);
+		} else if (currentcommand.contains("message ")) {
+			main.message("Info", currentcommand.substring(8),
+					JOptionPane.INFORMATION_MESSAGE);
+			main.setWorking(false);
+		} else if (main.getMode() == 0) {
+			updateCommandline(">-" + currentcommand);
+			updateCommandline("--Select ADB, Fastboot or CMD before entering commands!");
+			main.setWorking(false);
+		} else {
+			commandline += ">" + currentcommand;
+			ta_cmd.setText(commandline);
+			main.runCommand(currentcommand);
+		}
+	}// GEN-LAST:event_b_executecommandActionPerformed
+
+	private void MI_chooseFastbootActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_chooseFastbootActionPerformed
+		main.setMode(Executer.FASTBOOT);
+	}// GEN-LAST:event_MI_chooseFastbootActionPerformed
+
+	private void b_savelogActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_b_savelogActionPerformed
+		Writer fw = null;
+		File file = main
+				.chooseFile("Save cmd output", false, "Save", "log.txt");
+		if (file != null) {
+			try {
+				fw = new FileWriter(file);
+				fw.write(ta_cmd.getText());
+				fw.append(System.getProperty("line.separator")); // e.g. "\n"
+				ta_cmd.setText("Log saved as " + file.toString()
+						+ ", ready to clear");
+			} catch (IOException e) {
+				main.updateCommandline("--Cannot save log (" + e.toString()
+						+ ")");
+			} finally {
+				if (fw != null) {
+					try {
+						fw.close();
+					} catch (IOException e) {
+						main.updateCommandline("--Unable to close filewriter"
+								+ "(" + e.toString() + ")");
+					}
+				}
+			}
+		}
+	}// GEN-LAST:event_b_savelogActionPerformed
+
+	private void b_clearActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_b_clearActionPerformed
+		// sicherheitsabfrage
+		commandline = "";
+		ta_cmd.setText(commandline);
+		t_command.setText(commandline);
+	}// GEN-LAST:event_b_clearActionPerformed
+
+	private void M_modeActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_M_modeActionPerformed
+	}// GEN-LAST:event_M_modeActionPerformed
+
+	private void MI_chooseCMDActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_chooseCMDActionPerformed
+		main.setMode(Executer.CMD);
+	}// GEN-LAST:event_MI_chooseCMDActionPerformed
+
+	private void b_executecommandKeyPressed(java.awt.event.KeyEvent evt) {// GEN-FIRST:event_b_executecommandKeyPressed
+		// unnötig
+	}// GEN-LAST:event_b_executecommandKeyPressed
+
+	private void formKeyPressed(java.awt.event.KeyEvent evt) {// GEN-FIRST:event_formKeyPressed
+		// unnötig
+	}// GEN-LAST:event_formKeyPressed
+
+	/*
+	 * KeyEvents Commandline Enter & History
+	 */
+	private void t_commandKeyPressed(java.awt.event.KeyEvent evt) {
+		int code = evt.getKeyCode();
+		if (code == KeyEvent.VK_ENTER) {
+			b_executecommand.doClick();
+		} else {
+			String command = "";
+			if (code == KeyEvent.VK_UP) {
+				command = comHistory.getPrevCommand();
+				// older history
+			} else if (code == KeyEvent.VK_DOWN) {
+				command = comHistory.getPostCommand();
+				// newer history
+			} else {
+				// no matching key
+				return;
+			}
+			t_command.setText(command);
+		}
+	}
+
+	private void b_checkfordeviceActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_b_checkfordeviceActionPerformed
+		updateCommandline("--check for device not supportet yet");
+	}// GEN-LAST:event_b_checkfordeviceActionPerformed
+
+	private void MI_autoselectActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_autoselectActionPerformed
+		updateCommandline("--autoselect not supportet yet");
+	}// GEN-LAST:event_MI_autoselectActionPerformed
+
+	private void MI_editPathActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_editPathActionPerformed
+		String selectedpath = main.chooseFileString("Select new Path", true,
+				"Select", "");
+		try {
+			path = selectedpath;
+			updateCommandline("--Path changed to " + path);
+			if (currentmode != null) {
+				currentmode.checkAccess();
+			}
+		} catch (NullPointerException e) {
+			// no file selected
+		}
+	}// GEN-LAST:event_MI_editPathActionPerformed
+
+	private void MI_installDriversActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_installDriversActionPerformed
+		// http://clockworkmod.com/carbon/drivers contains driver collections
+		// http://developer.android.com/tools/extras/oem-usb.html#Drivers
+		// contains all links
+		main.runCommand(
+				"start http://developer.android.com/tools/extras/oem-usb.html#Drivers",
+				3, false, false);
+	}// GEN-LAST:event_MI_installDriversActionPerformed
+
+	private void b_exitActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_b_exitActionPerformed
+		main.exit();
+	}// GEN-LAST:event_b_exitActionPerformed
+
+	private void MI_aboutActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_aboutActionPerformed
+		JOptionPane
+				.showMessageDialog(
+						this,
+						"ADB/Fastboot Tool\n "
+								+ "by Leonhard Künzler (2013)\n\n Feedback to leo@bwk-technik.de");
+	}// GEN-LAST:event_MI_aboutActionPerformed
+
+	private void b_killadbActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_b_killadbActionPerformed
+		updateCommandline("--restarting adb");
+		main.kill(1);
+		// starts adb server
+		main.runCommand("start-server", 1, false, false);
+	}// GEN-LAST:event_b_killadbActionPerformed
+
+	private void b_killfbActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_b_killfbActionPerformed
+		main.kill(2);
+	}// GEN-LAST:event_b_killfbActionPerformed
+
+	private void b_loadcommandsActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_b_loadcommandsActionPerformed
+		File commandfile;
+		try {
+			commandfile = main.chooseFile("Choose your Batchfile", false,
+					"Load", "");
+		} catch (NullPointerException e) {
+			return;
+		}
+		BufferedReader br;
+		FileReader fr;
+		try {
+			fr = new FileReader(commandfile);
+			br = new BufferedReader(fr);
+		} catch (FileNotFoundException ex) {
+			updateCommandline("--File " + commandfile + " not found");
+			return;
+		}
+		String temp, commandlist;
+		commandlist = "";
+		try {
+			temp = br.readLine();
+			if (temp.matches(".adbfastboot.*")) {
+				while ((temp = br.readLine()) != null) {
+					commandlist += temp + "\n";
+				}
+				String[] commands = commandlist.split("\n");
+				for (String s : commands) {
+					System.out.println("_" + s + "_");
+				}
+				ta_batch.setText(commandlist);
+			} else {
+				updateCommandline("--File not valid. First line must be "
+						+ "\".adbfastboot\"");
+				// message
+			}
+		} catch (IOException ex) {
+			updateCommandline("--Error while reading batchfile");
+			return;
+		}
+		try {
+			br.close();
+		} catch (IOException ex) {
+			updateCommandline("--Error closing filereader");
+		}
+	}// GEN-LAST:event_b_loadcommandsActionPerformed
+
+	private void cb_editbatchActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_cb_editbatchActionPerformed
+		if (cb_editbatch.isSelected()) {
+			ta_batch.setEditable(true);
+		} else {
+			ta_batch.setEditable(false);
+		}
+	}// GEN-LAST:event_cb_editbatchActionPerformed
+
+	private void b_clearcommandareaActionPerformed(
+			java.awt.event.ActionEvent evt) {// GEN-FIRST:event_b_clearcommandareaActionPerformed
+		ta_batch.setText("");
+	}// GEN-LAST:event_b_clearcommandareaActionPerformed
+
+	private void b_savecommandsActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_b_savecommandsActionPerformed
+		File file = main.chooseFile("Save commands", false, "Save",
+				"commands.txt");
+		String text = ".adbfastboot\n" + ta_batch.getText();
+		main.writeToFile(text, file);
+	}// GEN-LAST:event_b_savecommandsActionPerformed
+
+	private void b_execudenextcommandActionPerformed(
+			java.awt.event.ActionEvent evt) {// GEN-FIRST:event_b_execudenextcommandActionPerformed
+		String[] commands = ta_batch.getText().split("\n");
+		t_command.setText(commands[0]);
+		commands[0] = "";
+		String temp = "";
+		for (int i = 1; i < commands.length; i++) {
+			temp += commands[i] + "\n";
+		}
+		ta_batch.setText(temp);
+		b_executecommand.doClick();
+	}// GEN-LAST:event_b_execudenextcommandActionPerformed
+
+	private void b_resetActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_b_resetActionPerformed
+		main.reset();
+	}// GEN-LAST:event_b_resetActionPerformed
+
+	private void MI_bootAndroidActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_bootAndroidActionPerformed
+		// Reboot into OS
+		int cmode = main.getMode();
+		if (cmode == 1 || cmode == 2) {
+			main.runCommand("reboot", cmode, true, true);
+			if (cmode == 2) {
+				MI_chooseADB.doClick();
+			}
+			main.runCommand("wait-for-device", 1, true, true);
+		} else {
+			updateCommandline("--Reboot only works in ADB/Fastboot mode");
+		}
+	}// GEN-LAST:event_MI_bootAndroidActionPerformed
+
+	private void MI_bootBootloaderActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_bootBootloaderActionPerformed
+		// Reboot into bootloader
+		int cmode = main.getMode();
+		if (cmode == 1 || cmode == 2) {
+			main.runCommand("reboot-bootloader", cmode, true, true);
+			if (cmode == 1) {
+				MI_chooseFastboot.doClick();
+			}
+		} else {
+			updateCommandline("--Reboot only works in ADB/Fastboot mode");
+		}
+	}// GEN-LAST:event_MI_bootBootloaderActionPerformed
+
+	private void MI_bootRecoveryActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_bootRecoveryActionPerformed
+		int cmode = main.getMode();
+		if (cmode == 1 || cmode == 2) {
+			main.runCommand("reboot-recovery", cmode, true, true);
+		} else {
+			updateCommandline("--Reboot only works in ADB/Fastboot mode");
+		}
+	}// GEN-LAST:event_MI_bootRecoveryActionPerformed
+
+	private void MI_addFilePathActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_addFilePathActionPerformed
+		String insertpath = main.chooseFileString("Choose file", false,
+				"Insert", "");
+		main.updateExecuteline(insertpath, false);
+	}// GEN-LAST:event_MI_addFilePathActionPerformed
+
+	private void MI_addFlashEraseActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_addFlashEraseActionPerformed
+		FastbootFlashEraseFormat commandbuilder;
+		commandbuilder = new FastbootFlashEraseFormat(main);
+		commandbuilder.setVisible(true);
+	}// GEN-LAST:event_MI_addFlashEraseActionPerformed
+
+	private void MI_howToActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_howToActionPerformed
+		main.updateCommandline("--MI_howToActionPerformed not supportet yet");
+	}// GEN-LAST:event_MI_howToActionPerformed
+
+	private void MI_addPushPullActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_addPushPullActionPerformed
+		new gui.ADBPushPull(main).setVisible(true);
+	}// GEN-LAST:event_MI_addPushPullActionPerformed
+
+	private void MI_logcatActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_logcatActionPerformed
+		new Logcat(main, main.getPath()).setVisible(true);
+	}// GEN-LAST:event_MI_logcatActionPerformed
+
+	private void MI_checkupdatesActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_MI_checkupdatesActionPerformed
+		// check www.bwk-technik.de/.../version.txt mit aktueller version
+	}// GEN-LAST:event_MI_checkupdatesActionPerformed
+
+	public void updateCommandline(String update, boolean newline) {
+		if (commandline.equals("")) {
+			commandline = update;
+		} else {
+			if (newline) {
+				commandline += "\n" + update;
+			} else {
+				commandline += update;
+			}
+		}
+		ta_cmd.setText(commandline);
+		ta_cmd.setCaretPosition(ta_cmd.getDocument().getLength());
+		System.out.println(update);
+	}
+
+	public void updateCommandline(String update) {
+		updateCommandline(update, true);
+	}
+
+	public void windowClosing(WindowEvent e) {
+		main.exit();
+	}
+
+	/**
+	 * Sets the GUI to working or ready state
+	 * 
+	 * @param working
+	 *            true:working, false:ready
+	 */
+	public void setWorking(boolean working) {
+		if (working) {
+			l_working.setText("-Working-");
+		} else {
+			l_working.setText("Ready");
+		}
+	}
+
+	/**
+	 * If CBMI_clear is ticked, cmd_output window will be cleared
+	 */
+	public void clearOnChange() {
+		if (CBMI_clear.getState()) {
+			commandline = "";
+			ta_cmd.setText("");
+			// t_command.setText(""); executeline leeren
+		}
+	}
+
+	/**
+     *
+     */
+	public void setFrameIcon() {
+		java.net.URL iconUrl = this.getClass().getResource("icon.jpeg");
+		java.awt.Image img = getToolkit().getImage(iconUrl);
+		show();
+		setIconImage(new ImageIcon("icon.jpeg").getImage());
+
+		System.out.println("södlkfja");
+	}
+
+	/**
+	 * Returns the current path for exefiles
+	 * 
+	 * @return path of exefiles(temp dir) as string
+	 */
+	public String getPath() {
+		return path;
+	}
+
+	public void updateExecuteline(String update, boolean clear) {
+		if (clear) {
+			t_command.setText(update);
+		} else {
+			t_command.setText(t_command.getText() + " " + update);
+		}
+	}
+
+	/**
+	 * Sets searching variable true, if search is running
+	 * 
+	 * @param searching
+	 *            true:running, false:not running
+	 */
+	public void setSearching(boolean searching) {
+		this.searching = searching;
+	}
+
+	public void updateBatch(String update) {
+		ta_batch.setText(ta_batch.getText() + "\n" + update);
+	}
+
+	public void setMode(int mode) {
+		clearOnChange();
+		switch (mode) {
+		case Executer.ADB: {
+			updateCommandline("--ADB Mode");
+			l_currentmode.setText("ADB");
+			main.runCommand("start-server", 1, false, false);
+			main.runCommand("version", 1, false, true);
+			break;
+		}
+		case Executer.FASTBOOT: {
+			updateCommandline("--Fastboot Mode\nif no device is connected"
+					+ " in fastboot mode,\nfastboot will wait for device "
+					+ "and block\n");
+			l_currentmode.setText("Fastboot");
+			break;
+		}
+		case Executer.CMD: {
+			updateCommandline("--CMD Mode");
+			l_currentmode.setText("CMD");
+			break;
+		}
+		default: {
+			main.updateCommandline("--Wrong input at setMode in class Frame"
+					+ " (" + mode + ")");
+		}
+		}
+	}
+
+	/**
+	 * @param args
+	 *            the command line arguments
+	 */
+	public static void main(String args[]) {
+		/* Set the Nimbus look and feel */
+		try {
+			for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager
+					.getInstalledLookAndFeels()) {
+				if ("Nimbus".equals(info.getName())) {
+					javax.swing.UIManager.setLookAndFeel(info.getClassName());
+					break;
+				}
+			}
+		} catch (ClassNotFoundException | InstantiationException
+				| IllegalAccessException
+				| javax.swing.UnsupportedLookAndFeelException ex) {
+			java.util.logging.Logger.getLogger(MainGuiWorking.class.getName()).log(
+					java.util.logging.Level.SEVERE, null, ex);
+		}
+	}
+
+	// Variables declaration - do not modify//GEN-BEGIN:variables
+	private javax.swing.JCheckBoxMenuItem CBMI_clear;
+	private javax.swing.JMenuBar MB_menu;
+	private javax.swing.JMenuItem MI_about;
+	private javax.swing.JMenuItem MI_addFilePath;
+	private javax.swing.JMenuItem MI_addFlashErase;
+	private javax.swing.JMenuItem MI_addPushPull;
+	private javax.swing.JCheckBoxMenuItem MI_autolog;
+	private javax.swing.JMenuItem MI_autoselect;
+	private javax.swing.JMenuItem MI_bootAndroid;
+	private javax.swing.JMenuItem MI_bootBootloader;
+	private javax.swing.JMenuItem MI_bootRecovery;
+	private javax.swing.JMenuItem MI_checkAdbFastboot;
+	private javax.swing.JMenuItem MI_checkupdates;
+	private javax.swing.JMenuItem MI_chooseADB;
+	private javax.swing.JMenuItem MI_chooseCMD;
+	private javax.swing.JMenuItem MI_chooseFastboot;
+	private javax.swing.JMenuItem MI_close;
+	private javax.swing.JMenuItem MI_editPath;
+	private javax.swing.JMenuItem MI_howTo;
+	private javax.swing.JMenuItem MI_installDrivers;
+	private javax.swing.JMenuItem MI_logcat;
+	private javax.swing.JMenu M_adb;
+	private javax.swing.JMenu M_fastboot;
+	private javax.swing.JMenu M_insert;
+	private javax.swing.JMenu M_mode;
+	private javax.swing.JMenu M_options;
+	private javax.swing.JMenu M_reboot;
+	private javax.swing.JMenu M_start;
+	protected javax.swing.JButton b_checkfordevice;
+	private javax.swing.JButton b_clear;
+	private javax.swing.JButton b_clearcommandarea;
+	private javax.swing.JButton b_execudenextcommand;
+	private javax.swing.JButton b_executecommand;
+	private javax.swing.JButton b_exit;
+	private javax.swing.JButton b_killadb;
+	private javax.swing.JButton b_killfb;
+	private javax.swing.JButton b_loadcommands;
+	private javax.swing.JButton b_reset;
+	private javax.swing.JButton b_savecommands;
+	private javax.swing.JButton b_savelog;
+	private javax.swing.JCheckBox cb_editbatch;
+	private javax.swing.JMenu jMenu1;
+	private javax.swing.JMenu jMenu3;
+	private javax.swing.JScrollPane jScrollPane1;
+	private javax.swing.JScrollPane jScrollPane2;
+	private javax.swing.JPopupMenu.Separator jSeparator1;
+	private javax.swing.JPopupMenu.Separator jSeparator2;
+	private javax.swing.JLabel l_batch;
+	public javax.swing.JLabel l_currentmode;
+	public javax.swing.JLabel l_device;
+	private javax.swing.JLabel l_from;
+	private javax.swing.JLabel l_working;
+	private javax.swing.JTextField t_command;
+	private javax.swing.JTextArea ta_batch;
+	private javax.swing.JTextArea ta_cmd;
+	// End of variables declaration//GEN-END:variables
+}
